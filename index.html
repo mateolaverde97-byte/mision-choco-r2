@@ -331,7 +331,8 @@ function t12(s){ const v = tmin(s); if(v == null) return s; let h = Math.floor(v
 const venTxt = f => f.ven.map(v => t12(v[0]) + ' – ' + t12(v[1])).join(' y ');
 
 /* ---------- estado ---------- */
-let ME = lsGet('r2_me', null);           // {team, name}
+let ME = lsGet('r2_me', null);           // {team, name}: siempre el líder del equipo
+if(ME && ME.team && DATA.teams[ME.team]) ME.name = DATA.teams[ME.team].lider;
 let STORE = lsGet('r2_store', {});       // id -> {data, version, estado, editor, actualizado, costo, envio}
 let DIRTY = lsGet('r2_dirty', {});       // id -> true si hay cambios sin subir
 let ONLINE = !!API, LASTSYNC = 0, ADMIN = lsGet('r2_admin', false);
@@ -494,7 +495,6 @@ function teamV(t){
   const c = {sent:0, mod:0, draft:0, pre:0}; fs.forEach(u => c[stOf(u.f.id)]++);
   const pct = n => (n / (N || 1) * 100).toFixed(1) + '%';
   const seg = [[c.sent, 'var(--navy)', 'Enviadas'], [c.mod, '#F2C200', 'Con cambios'], [c.draft, 'var(--orange)', 'En borrador'], [c.pre, '#fff', 'Sin empezar']];
-  const meSel = (ME && ME.team === t) ? ME.name : '';
   const tabs = '<div class="tabs" role="tablist" aria-label="Días de la misión">' + DAYS.map(d => {
     const n = us.filter(u => u.b.day === d.k).length;
     return '<button class="tab' + (n ? '' : ' empty') + '" role="tab" aria-selected="' + (d.k === tab) + '" data-go="#/equipo/' + t + '/' + d.k + '"><span class="d">' + d.s.split(' ')[0] + '</span><span class="n">' + d.s.split(' ')[1] + '</span></button>';
@@ -506,9 +506,8 @@ function teamV(t){
     seg.map(s => '<i style="width:' + pct(s[0]) + ';background:' + s[1] + '"></i>').join('') + '</div><div class="legend">' +
     seg.filter(s => s[0]).map(s => '<span style="--c:' + s[1] + '">' + s[0] + ' ' + s[2].toLowerCase() + '</span>').join('') + '</div>' +
     '<p style="margin:10px 0 0;font-size:14.5px;font-weight:600">Entrega: domingo 15 de noviembre (incluido).</p></section>' +
-    '<section class="box plain"><h3>¿Quién eres?</h3><p style="margin:0 0 8px;font-size:14.5px">Así queda registrado quién hizo cada cambio.</p><div class="whos">' +
-    T.miembros.map(p => '<button class="pchip" aria-pressed="' + (meSel === p) + '" data-me="' + esc(p) + '" data-t="' + t + '">' + esc(p) + '</button>').join('') + '</div></section>' +
-    '<details class="box"><summary>Reglas y presupuesto</summary><div class="in">' + rulesHTML() + pptoHTML() + '</div></details>' +
+    '<section class="box plain"><h3>Reglas</h3>' + rulesHTML() + '</section>' +
+    '<section class="box plain"><h3>Presupuesto</h3>' + pptoHTML() + '</section>' +
     '<section class="days"><h2 class="disp">Tus actividades por día</h2>' + tabs + '<div class="panel">' + (cards || '<div class="logi">Este día no tienes actividades.</div>') + '</div></section></div>' +
     foot() + '</main>';
 }
@@ -653,8 +652,8 @@ function sheet(title, html){
 }
 function closeSheets(){ $('#sheetroot').innerHTML = ''; }
 function needMe(f){
-  if(ME && ME.name) return true;
-  sheet('¿Quién está editando?', '<p style="margin:0 0 10px;font-weight:550">Elige tu nombre para registrar los cambios.</p><div class="whos">' + f.eq.map(tt => DATA.teams[tt].miembros.map(p => '<button class="pchip" data-me="' + esc(p) + '" data-t="' + tt + '" data-close="1">' + esc(p) + '</button>').join('')).join('') + '</div>');
+  if(ME && ME.team && DATA.teams[ME.team]){ ME.name = DATA.teams[ME.team].lider; return true; }
+  sheet('¿Cuál es tu equipo?', '<p style="margin:0 0 10px;font-weight:550">Solo los líderes editan las fichas. Elige tu nombre.</p><div class="whos">' + f.eq.map(tt => '<button class="pchip" data-me="1" data-t="' + tt + '" data-close="1">' + esc(DATA.teams[tt].lider) + ' · Equipo ' + tt + '</button>').join('') + '</div>');
   return false;
 }
 function touch(){
@@ -795,8 +794,8 @@ document.addEventListener('click', async e => {
   const el = e.target.closest('[data-go],[data-team],[data-me],[data-add],[data-del],[data-act],[data-close]'); if(!el) return;
   if(el.dataset.close && !el.dataset.me){ closeSheets(); return; }
   if(el.dataset.go){ go(el.dataset.go); return; }
-  if(el.dataset.team){ const t = +el.dataset.team; if(!ME || ME.team !== t){ ME = {team: t, name: ''}; lsSet('r2_me', ME); } go('#/equipo/' + t + '/mie'); return; }
-  if(el.dataset.me){ ME = {team: +el.dataset.t, name: el.dataset.me}; lsSet('r2_me', ME); if(el.dataset.close) closeSheets(); else { document.querySelectorAll('.pchip').forEach(b => b.setAttribute('aria-pressed', b.dataset.me === ME.name)); } toast('Hola, ' + ME.name.split(' ')[0]); return; }
+  if(el.dataset.team){ const t = +el.dataset.team; ME = {team: t, name: DATA.teams[t].lider}; lsSet('r2_me', ME); go('#/equipo/' + t + '/mie'); return; }
+  if(el.dataset.me){ const t = +el.dataset.t; ME = {team: t, name: DATA.teams[t].lider}; lsSet('r2_me', ME); closeSheets(); toast('Hola, ' + ME.name.split(' ')[0]); return; }
   if(el.dataset.add && CUR){ const f = FB[CUR.id]; if(!needMe(f)) return; const L = el.dataset.add; CUR.d[L] = CUR.d[L] || [];
     if(L === 'jg' && CUR.d.jg.length >= f.jmax){ toast('Máximo ' + f.jmax + '.'); return; }
     CUR.d[L].push(L === 'mm' ? {a:'',b:'',q:'',p:''} : L === 'pe' ? {p:'',r:''} : L === 'jg' ? {n:'',d:'',p:''} : {i:'',t:'',c:1,u:'',s:'',re:false});
@@ -815,7 +814,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('input', e => {
   if(!CUR) return; const el = e.target, f = FB[CUR.id];
-  if((el.dataset.k || el.dataset.l) && !(ME && ME.name) && !$('#sheetroot').innerHTML) needMe(f);
+  if((el.dataset.k || el.dataset.l) && !(ME && ME.team) && !$('#sheetroot').innerHTML) needMe(f);
   if(el.dataset.k){ CUR.d[el.dataset.k] = el.value; touch(); return; }
   if(el.dataset.l){ const L = el.dataset.l, i = +el.dataset.i, k = el.dataset.f; let v = el.type === 'checkbox' ? el.checked : el.value;
     if(L === 'ma' && (k === 'c' || k === 'u')) v = v === '' ? '' : Number(v);
