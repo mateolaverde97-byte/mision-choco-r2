@@ -39,3 +39,19 @@ Web para que los líderes completen las 21 fichas de la ronda 2. Se publica en G
 - Las fichas se guardan solas mientras escriben. Si dos personas editan a la vez, la página avisa y deja elegir qué versión conservar.
 - "Enviar a Matt L." marca la ficha como enviada en la hoja y abre WhatsApp con el resumen y un código (sirve de respaldo en "Traer propuestas").
 - Coordinación (con PIN): mapa de propuestas, lado a lado por bloque, lista de compras consolidada (descarga CSV) y traer propuestas.
+
+---
+
+# Compras de materiales (`/compras/`)
+
+Página para que cada equipo registre sus compras: check de comprado, cantidad, valor pagado, quién lo compró, notas y foto del recibo. Los materiales de Quibdó y la partida de dulces quedan en el grupo «Carlos · avanzada».
+
+Publicada en: `https://mateolaverde97-byte.github.io/mision-choco-r2/compras/`
+
+## Conectar la hoja (una sola vez)
+1. Abre la hoja **"Compras Chocó 2026"** → **Extensiones → Apps Script**. Borra lo que haya y pega todo `apps-script/Compras.gs`. Guarda.
+2. En el selector de funciones elige **setup** → **Ejecutar** → acepta los permisos (Hojas y Drive). Crea las pestañas `items` e `historial` y la carpeta de Drive «Recibos · Compras Chocó 2026».
+3. **Implementar → Nueva implementación** → Aplicación web · Ejecutar como: **Yo** · Acceso: **Cualquier usuario** → Implementar.
+4. Copia la URL que termina en `/exec` y pégala en `compras/index.html` en `const API = '';`.
+
+Mientras `API` esté vacío, la página funciona en modo prueba (guarda solo en el celular y no sube recibos).
